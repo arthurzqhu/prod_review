@@ -1,11 +1,11 @@
 import numpy as np
 
 proj_prod = {'Media': 0.25,
-             'piano': 0.5,
-             'Misc': 0.5,
-             'Finance': 0.75,
+             'piano': 0.25,
+             'Misc': 0.25,
+             'Finance': 0.5,
              'Gaming': 0.,
-             'Communication': 0.75,
+             'Communication': 0.5,
              'News & Procrastination': 0.,
              'Studying': 1.,
              'Work': 1.,
@@ -20,4 +20,6 @@ proj_prod = {'Media': 0.25,
              '(No Project)': np.nan
             }
 
-delta_t_threshold = 300 # seconds
+dt_connect = 300 # seconds. connect the two projects if they're less than 300 s apart
+dt_workbreak_interval = 1800 # seconds. used to find the breaks in between work sessions
+prod_assess_span = 3600 # seconds. time span over which average score is calculated
