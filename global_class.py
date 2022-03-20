@@ -18,4 +18,4 @@ class Break:
         self.end_time[-1] = end_time
 
     def setNextHrScore(self, score):
-        self.next_hr_score = score
+        self.prod_score = score
