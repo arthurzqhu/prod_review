@@ -21,6 +21,6 @@ proj_prod = {'Media': 0.25,
             }
 
 dt_connect = 300 # seconds. connect the two projects if they're less than 300 s apart
-dt_workbreak_interval = 1800 # seconds. used to find the breaks in between work sessions
+dt_workbreak_interval = 1200 # seconds. used to find the breaks in between work sessions
 prod_assess_span = 3600 # seconds. time span over which average score is calculated
-default_phone_scrolling_score = 0.1
+no_record_score = 0.5
