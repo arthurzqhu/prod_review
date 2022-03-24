@@ -15,46 +15,52 @@ from global_fun import *
 from global_class import *
 
 # %%
-fullds = pd.read_csv('All Activities by project.csv')
-fullds = fullds.sort_values(by=['Start Date'])
+def preproc(filedir):
+    fullds = pd.read_csv(filedir)
+    fullds = fullds.sort_values(by=['Start Date'])
+    fullds['Score'] = [proj_prod[x] for x in fullds['Project'].to_numpy()]
+    fullds.fillna('', inplace=True)
 
-fullds['Score'] = [proj_prod[x] for x in fullds['Project'].to_numpy()]
-fullds.fillna('', inplace=True)
+    fullds = fullds[fullds['Project']!='(No Project)']
 
-fullds = fullds[fullds['Project']!='(No Project)']
+    fullds = fullds.reset_index()
+    fullds = fullds.drop(['index'],axis=1)
+    return fullds
 
-fullds = fullds.reset_index()
-fullds_mod = fullds.copy().drop(['index'],axis=1)
+fullds = preproc('All Activities by project.csv')
 
 # combine the same project as long as they are at most dt_connect apart
 # ignore the difference in title at the moment
-idx_drop = []
-startIdx = 0
-for idx, row in fullds.iterrows():
-    if idx == 0:
-        continue
+def combine_proj(df_in):
+    idx_drop = []
+    startIdx = 0
+    df_out = df_in.copy()
+    for idx, row in df_in.iterrows():
+        if idx == 0:
+            continue
 
-    dt = get_dt(fullds, idx-1, idx)
-    l_same_proj = fullds.loc[idx-1,'Project']==row['Project']
+        dt = get_dt(df_in, idx-1, idx)
+        l_same_proj = df_in.loc[idx-1,'Project']==row['Project']
+        if not l_same_proj or dt >= dt_connect:
+            startIdx = idx
 
-    if not l_same_proj or dt >= dt_connect:
-        startIdx = idx
+        if dt < dt_connect and l_same_proj:
+            idx_drop.append(idx)
+            df_out.loc[startIdx,'End Date'] = row['End Date']
+            df_out.loc[startIdx,'Duration'] += df_out.loc[idx,'Duration']
+            if df_out.loc[startIdx,'Title'] != df_out.loc[idx,'Title']:
+                if df_out.loc[idx,'Title'] not in df_out.loc[startIdx,'Title']:
+                    df_out.loc[startIdx,'Title'] += '. ' + df_out.loc[idx,'Title']
+    return idx_drop, df_out
 
-    if dt < dt_connect and l_same_proj:
-        idx_drop.append(idx)
-        fullds_mod.loc[startIdx,'End Date'] = row['End Date']
-        fullds_mod.loc[startIdx,'Duration'] += fullds_mod.loc[idx,'Duration']
-        if fullds_mod.loc[startIdx,'Title'] != fullds_mod.loc[idx,'Title']:
-            if fullds_mod.loc[idx,'Title'] not in fullds_mod.loc[startIdx,'Title']:
-                fullds_mod.loc[startIdx,'Title'] += '. ' + fullds_mod.loc[idx,'Title']
+idx_drop, fullds_mod = combine_proj(fullds)
 
 # %%
-# think about how to identify and deal with parallel activities ...
-fullds_mod[130250:130260]
-
-
-compres_ds = fullds_mod.drop(idx_drop).reset_index()
-compres_ds = compres_ds.drop(['index'],axis=1)
+def drop_df_idx(df, idx):
+    compressed = df.drop(idx).reset_index()
+    compressed = compressed.drop(['index'],axis=1)
+    return compressed
+compres_ds = drop_df_idx(fullds_mod, idx_drop)
 
 # find the indices of "breaks"
 # only a break if a "work session" already started in dt_workbreak_interval
@@ -115,7 +121,8 @@ for idx, row in compres_ds.iterrows():
                         break
                 # fill default value
                 if not score_span or sum(score_span.values())==0: score_span = {no_record_score: 1}
-                brk.prod_score = np.average(list(score_span.keys()), weights=list(score_span.values()))
+                brk.prod_score = np.average(list(score_span.keys()),
+                                 weights=list(score_span.values()))
                 break_list.append(brk)
 
 # %% plot
@@ -133,7 +140,8 @@ brk_dur_list_mid = (brk_dur_list[:-1] + brk_dur_list[1:])/2
 mean_score = np.zeros(len(brk_dur_list_mid))
 mean_std = np.zeros(len(brk_dur_list_mid))
 for idx, val in enumerate(brk_dur):
-    vidx = np.argwhere(np.logical_and(np.array(brk_dur) > brk_dur_list[idx], np.array(brk_dur) <= brk_dur_list[idx+1]))
+    vidx = np.argwhere(np.logical_and(np.array(brk_dur) > brk_dur_list[idx],
+                       np.array(brk_dur) <= brk_dur_list[idx+1]))
     if vidx.size == 0:
         mean_score[idx] = np.nan
     else:
