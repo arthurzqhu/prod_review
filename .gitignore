@@ -1,3 +1,4 @@
 All Activities*.csv
 .DS_Store
 *.pyc
+__pycache__
