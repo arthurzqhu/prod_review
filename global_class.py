@@ -17,5 +17,5 @@ class Break:
         self.proj_dur[-1] += proj_dur
         self.end_time[-1] = end_time
 
-    def setNextHrScore(self, score):
-        self.prod_score = score
+    def setEffect(self, score):
+        self.break_eff = score
