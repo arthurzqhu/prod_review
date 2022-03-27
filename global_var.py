@@ -22,7 +22,7 @@ proj_prod = {'Media': 0.25,
 
 dt_connect = 300 # seconds. connect the two projects if they're less than 300 s apart
 dt_workbreak_interval = 1800 # seconds. used to find the breaks in between work sessions
-dt_afk = 300 # minimum dt between work session that'll be considered AFK, in which case afk_score
-             # is used
+dt_afk = dt_connect # minimum dt between work session that'll be considered AFK, in which case
+             # afk_score is used
 prod_assess_span = 3600 # seconds. time span over which average score is calculated
 afk_score = 0.5
