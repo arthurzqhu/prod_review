@@ -2,3 +2,4 @@ All Activities*.csv
 .DS_Store
 *.pyc
 __pycache__
+scratchpad.py
