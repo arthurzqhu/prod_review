@@ -22,14 +22,13 @@ def preproc(filedir):
     fullds.fillna('', inplace=True)
 
     fullds = fullds[fullds['Project']!='(No Project)']
-
-    fullds = fullds.reset_index()
-    fullds = fullds.drop(['index'],axis=1)
+    # fullds = fullds.drop(['index'],axis=1)
     return fullds
 
 # combine the same project as long as they are at most dt_connect apart
 # ignore the difference in title at the moment
 def combine_proj(df_in):
+    df_in = df_in.reset_index().drop(['index'],axis=1)
     idx_drop = []
     startIdx = 0
     df_out = df_in.copy()
@@ -52,34 +51,47 @@ def combine_proj(df_in):
     return idx_drop, df_out
 
 
-#
 def drop_df_idx(df, idx):
-    compressed = df.drop(idx).reset_index()
-    compressed = compressed.drop(['index'],axis=1)
+    compressed = df.drop(idx)
+    # compressed = compressed.drop(['index'],axis=1)
     return compressed
 
 # find the indices of "breaks"
 # only a break if a "work session" already started in dt_workbreak_interval
+compres_ds[-15:-3].reset_index().drop(['index'],axis=1)
+
 def break_analysis(compressed):
+    compressed = compressed.reset_index().drop(['index'],axis=1)
     break_list = []
     compres_ds['isBreak'] = False
-    workIdx = np.nan
+    do_start_count = False
     for idx, row in compressed.iterrows():
         if idx == 0: continue
 
-        # start remembering idx when it's "productive"
+
+        if do_start_count: dt = get_dt(compressed, workIdx, idx)
+
         if row['Score'] > 0.5:
             workIdx = idx
-            continue
+            if not do_start_count:
+                do_start_count = True
+                continue
 
-        if np.isnan(workIdx):
-            continue
-
-        dt = get_dt(compressed, workIdx, idx, t2stamp='End Date')
+        if not do_start_count: continue
 
         if dt > dt_workbreak_interval:
             continue
         else:
+            if idx == len(compressed)-1: break
+
+            is_consecutive_work_session = compressed.loc[idx-1, 'Score'] > 0.5 and row['Score'] > 0.5
+            if is_consecutive_work_session and dt >= dt_afk_min:
+                brk = Break()
+
+                brk.addBreak('AFK', dt, 'AFK', afk_score, row['Start Date'])
+                brk.break_eff = calc_break_effect(compressed, idx, is_AFK=True)
+                break_list.append(brk)
+
             if row['Score'] <= 0.5:
                 compressed.loc[idx, 'isBreak'] = True
 
@@ -94,43 +106,13 @@ def break_analysis(compressed):
                                  row['Application'], row['Score'], row['End Date'])
 
                 # if the next item is not break:
-                # but had to do this since the whether or not the next one is
+                # had to do this since the whether or not the next one is
                 # break is not known yet
                 dt_next = get_dt(compressed, idx, idx+1, t2stamp='Start Date')
                 if dt_next > dt_workbreak_interval or compressed.loc[idx+1,'Score'] > 0.5:
-                    # calculate the score potential of this break and append to the list
-                    # cut off an activity if it starts before the scoring ends but stops after
-                    # what if nothing is recorded after the break?
-                    # set to default_phone_scrolling_score?
-                    score_span = {}
-                    assess_end_dt = datetime.fromisoformat(row['End Date']) + \
-                                 timedelta(seconds = prod_assess_span)
-                    act_idx = idx + 1
-
-                    while datetime.fromisoformat(compressed.loc[act_idx, 'Start Date']) <= assess_end_dt:
-                        curr_score = compressed.loc[act_idx, 'Score']
-
-                        # cut off the process if it lasts after the end of assessment time
-                        if datetime.fromisoformat(compressed.loc[act_idx, 'End Date']) <= assess_end_dt:
-                            curr_dur = compressed.loc[act_idx, 'Duration']
-                        else:
-                            curr_dur = (assess_end_dt - datetime.fromisoformat(compressed.loc[act_idx, 'Start Date'])).total_seconds()
-
-                        if curr_score not in score_span:
-                            score_span[curr_score] = curr_dur
-                        else:
-                            score_span[curr_score] += curr_dur
-
-                        act_idx += 1
-                        if act_idx == len(compressed):
-                            break
-                    # fill default value
-                    if not score_span or sum(score_span.values())==0: score_span = {no_record_score: 1}
-                    brk.prod_score = np.average(list(score_span.keys()),
-                                     weights=list(score_span.values()))
+                    brk.break_eff = calc_break_effect(compressed, idx)
                     break_list.append(brk)
     return break_list
-
 
 # %% bare with me not putting this into a main function atm
 fullds = preproc('All Activities by project.csv')
@@ -138,17 +120,21 @@ idx_drop, fullds_mod = combine_proj(fullds)
 compres_ds = drop_df_idx(fullds_mod, idx_drop)
 break_list = break_analysis(compres_ds)
 
+
+len(break_list)
+len(break_list)
+
 # %% plot
 %matplotlib inline
 brk_dur = [sum(x.proj_dur) for x in break_list]
-brk_scr = [x.prod_score for x in break_list]
+brk_scr = [x.break_eff for x in break_list]
 # plt.scatter(brk_dur, brk_scr, alpha=0.05)
 # _, brk_dur_binedges = np.histogram(brk_dur)
 # _, brk_scr_binedges = np.histogram(brk_scr)
 # plt.hist(brk_dur, brk_dur_binedges)
 # plt.hist(brk_scr, brk_scr_binedges)
 
-brk_dur_list = np.arange(0,dt_workbreak_interval+1,10)
+brk_dur_list = np.arange(0,dt_workbreak_interval+1,30)
 brk_dur_list_mid = (brk_dur_list[:-1] + brk_dur_list[1:])/2
 mean_score = np.zeros(len(brk_dur_list_mid))
 mean_std = np.zeros(len(brk_dur_list_mid))
@@ -167,4 +153,4 @@ plt.figure(figsize=(5,4), dpi=144)
 plt.plot(brk_dur_list_mid, mean_score, linewidth=1)
 plt.fill_between(brk_dur_list_mid, mean_score-mean_std, mean_score+mean_std, alpha=.3)
 plt.xlabel('break length [s]')
-plt.ylabel('productivity score')
+plt.ylabel('Break Effectiveness')
