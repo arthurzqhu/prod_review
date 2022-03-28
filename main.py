@@ -58,8 +58,6 @@ def drop_df_idx(df, idx):
 
 # find the indices of "breaks"
 # only a break if a "work session" already started in dt_workbreak_interval
-compres_ds[-15:-3].reset_index().drop(['index'],axis=1)
-
 def break_analysis(compressed):
     compressed = compressed.reset_index().drop(['index'],axis=1)
     break_list = []
