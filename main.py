@@ -80,8 +80,6 @@ def break_analysis(compressed):
         if dt > dt_workbreak_interval:
             continue
         else:
-            if idx == len(compressed)-1: break
-
             is_consecutive_work_session = compressed.loc[idx-1, 'Score'] > 0.5 and row['Score'] > 0.5
             if is_consecutive_work_session and dt >= dt_afk_min:
                 brk = Break()
@@ -118,8 +116,6 @@ idx_drop, fullds_mod = combine_proj(fullds)
 compres_ds = drop_df_idx(fullds_mod, idx_drop)
 break_list = break_analysis(compres_ds)
 
-
-len(break_list)
 len(break_list)
 
 # %% plot

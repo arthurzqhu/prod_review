@@ -30,7 +30,8 @@ def calc_break_effect(compressed, curr_idx, is_AFK=False):
 
     act_idx = curr_idx + 1
 
-    while datetime.fromisoformat(compressed.loc[act_idx, 'Start Date']) <= assess_end_dt:
+    while act_idx < len(compressed) and \
+          datetime.fromisoformat(compressed.loc[act_idx, 'Start Date']) <= assess_end_dt:
         curr_score = compressed.loc[act_idx, 'Score']
 
         # cut off the process if it lasts after the end of assessment time
