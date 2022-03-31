@@ -91,8 +91,8 @@ def break_analysis(compressed):
             if row['Score'] <= 0.5:
                 compressed.loc[idx, 'isBreak'] = True
 
-                # create a new break obj if the previous activity is not a break
-                if not compressed.loc[idx-1, 'isBreak']:
+                # create a new break obj if the previous activity has score > 0.5
+                if compressed.loc[idx-1, 'Score'] > 0.5:
                     brk = Break()
 
                 if compressed.loc[idx-1, 'Project'] == row['Project']:
@@ -119,7 +119,7 @@ break_list = break_analysis(compres_ds)
 len(break_list)
 
 # %% plot
-%matplotlib inline
+# %matplotlib inline
 brk_dur = [sum(x.proj_dur) for x in break_list]
 brk_scr = [x.break_eff for x in break_list]
 # plt.scatter(brk_dur, brk_scr, alpha=0.05)
