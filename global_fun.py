@@ -51,3 +51,40 @@ def calc_break_effect(compressed, curr_idx, is_AFK=False):
     break_effect = np.average(list(score_span.keys()),
                      weights=list(score_span.values()))
     return break_effect
+
+# %%
+def get_mean_std(x_scatter, y_scatter, interval, x_min=np.nan, x_max=np.nan):
+    if np.isnan(x_min): x_min = min(x_scatter)
+    if np.isnan(x_max): x_max = max(x_scatter)
+    # + interval to include x_max
+    
+    if not isinstance(x_scatter[0], datetime):
+        x_edges = np.arange(x_min, x_max + interval, interval) 
+        x_mean = np.arange(x_min + interval/2., x_max - interval/2., interval) 
+    else:
+        # since np.arange does not preserve timezone offset ...
+        nelem = int(np.ceil((x_scatter[-1] - x_scatter[0]) / interval)) + 1
+        x_edges = np.zeros(nelem).astype(datetime)
+        x_mean = np.zeros(nelem - 1).astype(datetime)
+        for i in range(nelem):
+            x_edges[i] = x_scatter[0] + interval * i
+            if i == nelem - 1: break
+            x_mean[i] = x_scatter[0] + interval * (i + 0.5)
+            
+
+    y_mean, y_std = np.zeros(len(x_mean)), np.zeros(len(x_mean))
+
+    for idx in range(len(x_edges)):
+        # TODO: faster implementation when we know the x_scatter is a time series
+        vidx = np.argwhere(np.logical_and(x_scatter >= x_edges[idx],
+                           x_scatter < x_edges[idx+1]))
+        if vidx.size == 0:
+            y_mean[idx] = np.nan
+        else:
+            y_mean[idx] = np.mean(y_scatter[vidx[:,0]])
+            y_std[idx] = np.std(y_scatter[vidx[:,0]])
+        if idx == len(x_mean)-1:
+            break
+    return x_mean, y_mean, y_std
+
+# %%
