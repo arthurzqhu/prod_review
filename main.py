@@ -11,8 +11,8 @@ from global_fun import *
 activities_dat = pd.read_csv('compressed_activities.csv')
 break_dat = pd.read_csv('break_down.csv')
 
-# %% some processing
 
+# %% some processing
 ndat = len(break_dat)
 brk_dur_seperated = [np.fromstring(break_dat['proj_dur'][ievent][1:-1],
                                    dtype=float, sep=',') for ievent in range(ndat)]
@@ -37,10 +37,7 @@ plt.fill_between(brk_dur_mean, score_mean - score_std, score_mean + score_std, a
 plt.xlabel('Break length [s]')
 plt.ylabel('Break Effectiveness')
 
-count = 0
-while count < 100:
-    print(count)
-    count += 1
+
 # %% break effectiveness over time
 
 brk_endtime_mean, brk_et_scr_mean, brk_et_scr_std = \
